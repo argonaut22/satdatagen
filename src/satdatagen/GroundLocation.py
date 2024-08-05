@@ -35,9 +35,18 @@ class GroundLocation:
 	def get_time_range(self):
 		return self.time_range
 
-	def generate_dataset(self, timing = False):
+	def generate_dataset(self, method = 'krag', limit = None, orbit = 'all', mixing_coeff = 0.8, output_file = None):
+		'''
+		returns a python dictionary of all the satellites overhead with keys of satellite NORAD ID as given by space-track and values the altitude/azimuth of the satellite at the observation time
 
-		return hel._generate_dataset(self.credentials, self.el, self.time_range.times, timing = timing)
+		@param [method]: string that determines which AVM method to use to determine satellite brightness.  options are 'krag', 'molczan', 'hejduk'. default is the Krag method
+		@param [limit]: integer that limits the number of satellites represented in the dataset. default is no limit, all satellites that pass over head included
+		@param [orbit]: string that filters for objects in a certain orbit.  options are 'LEO', 'MEO', 'GEO', 'all'. default is objects at all orbits
+		@param [mixing_coeff]: float between 0 and 1 that determines the ratio of diffuse/spectral reflection accounted for ONLY when method=='hejduk'
+		@param [output_file]: path to a .json file to output dataset to
+
+		'''
+		return hel._generate_dataset(self.credentials, self.el, self.time_range.times, method = method, limit = limit, orbit = orbit, mixing_coeff = mixing_coeff, output_file = output_file)
 
 	def __str__(self):
 		return f'Latitude: {self.lat}, Longitude: {self.lon}, Time range: {self.time_range}'

@@ -4,7 +4,10 @@ import numpy as np
 class TimeRange:
 	def __init__(self, start_date, end_date = None, periods = 0, delta = 0):
 		'''
-		@param start_date: can be string in ISO format, datetime object, or list of strings/datetime objects
+		@param start_date: can be string in ISO format, datetime object representing the starting date/time for the dataset
+		@param [end_date]: can be string in ISO format, datetime object representing the final date/time for the dataset
+		@param periods: integer representing the number of time steps to include in the dataset
+		@param [delta]: integer representing the time in minutes between each time step in the dataset
 		'''
 		self.periods = periods
 		self.delta = delta
@@ -73,10 +76,10 @@ class TimeRange:
 		return self.end
 
 
-if __name__ == '__main__':
-	temp = datetime(2024, 6, 10, hour=14, minute=30)
-	time_range = TimeRange(temp, periods = 5, delta = 2)
-	print(type(time_range[0].datetime))
+# if __name__ == '__main__':
+# 	temp = datetime(2024, 6, 10, hour=14, minute=30)
+# 	time_range = TimeRange(temp, periods = 5, delta = 2)
+# 	print(type(time_range[0].datetime))
 
-	print((time_range.start) - time_range.end)
+# 	print((time_range.start) - time_range.end)
 

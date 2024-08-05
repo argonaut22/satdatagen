@@ -17,6 +17,7 @@
 # from astropy import units as u
 # from astropy.coordinates import ITRS
 from satdatagen.sizes import object_sizes
+from satdatagen.M90 import M90_dict
 from satdatagen.helpers import *
 from satdatagen.TimeRange import *
 from satdatagen.GroundLocation import *
