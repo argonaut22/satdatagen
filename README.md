@@ -1,6 +1,17 @@
 # satdatagen
 a Python package for generating datasets to be used in satellite tasking schedulers
 
+## Installation
+`satdatagen` is in the Python Package Index, and can be installed using pip. The command:
+
+`python3 -m install satdatagen`
+
+or
+
+`pip3 install satdatagen`
+
+will install the `satdatagen` library in addition to all necessary dependencies.
+
 ## User Requirements
 This package relies on data collected from space-track.org, one of the main resource for satellite ephemeral data. Users of satdatagen must have an existing space-track.org login. Add a file called `credentials.json` to your working directory, with login information formatted as a JSON object:
 
