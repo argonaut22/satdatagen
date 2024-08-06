@@ -11,6 +11,7 @@ or
 `pip3 install satdatagen`
 
 will install the `satdatagen` library in addition to all necessary dependencies.
+*Note: in some cases the library `openmeteo-requests` does not get automatically installed. Users will need to run `pip3 install openmeteo-requests` only once to solve this*
 
 ## User Requirements
 This package relies on data collected from space-track.org, one of the main resource for satellite ephemeral data. Users of satdatagen must have an existing space-track.org login. Add a file called `credentials.json` to your working directory, with login information formatted as a JSON object:
@@ -23,3 +24,10 @@ This package relies on data collected from space-track.org, one of the main reso
 ```
 
 The satdatagen code will query the space-track.org servers for satellite data using the user's login information.  Note that each user is subject to space-track's query limit - up to 30 queries per minute and up to 300 queries per hour.  
+
+## Usage
+
+The `satdatagen` library is easy to use.  A dataset can be generated with minimal lines of code. Dataset generation revolves around the creation of 2 objects: a `TimeRange` object and a `GroundLocation` object.
+
+### `TimeRange`
+
