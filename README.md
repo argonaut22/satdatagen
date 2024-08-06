@@ -4,7 +4,7 @@ a Python package for generating datasets to be used in satellite tasking schedul
 ## Installation
 `satdatagen` is in the Python Package Index, and can be installed using pip. The command:
 
-`python3 -m install satdatagen`
+`python3 -m pip install satdatagen`
 
 or
 
