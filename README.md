@@ -11,6 +11,7 @@ or
 `pip3 install satdatagen`
 
 will install the `satdatagen` library in addition to all necessary dependencies.
+
 *Note: in some cases the library `openmeteo-requests` does not get automatically installed. Users will need to run `pip3 install openmeteo-requests` only once to solve this*
 
 ## User Requirements
@@ -30,4 +31,16 @@ The satdatagen code will query the space-track.org servers for satellite data us
 The `satdatagen` library is easy to use.  A dataset can be generated with minimal lines of code. Dataset generation revolves around the creation of 2 objects: a `TimeRange` object and a `GroundLocation` object.
 
 ### `TimeRange`
+`satdatagen.TimeRange(start_date, periods, delta = 0, end_date = None)`
+#### Parameters:
+**start_date**: a `datetime` object or `str` in ISO-T format (`YYYY-MM-DDTHH:mm:ss`). Represents the start date/time for the dataset scheduling
 
+**periods**: an `int`. Represents the number of time steps in the time range for the duration of scheduling
+
+**[delta]**: optional parameter. `int`. Represents the time between each time step in the time range
+
+**[end_date]**: optional parameter. a `datetime` object or `str` in ISO-T format (`YYYY-MM-DDTHH:mm:ss`). Represents the final date/time in the time range.
+
+
+
+Users must provide *either* a `delta` value or `end_date` value to control the length of the time range.
