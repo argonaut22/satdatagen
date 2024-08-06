@@ -46,6 +46,8 @@ The `satdatagen` library is easy to use.  A dataset can be generated with minima
 
 Users must provide *either* a `delta` value or `end_date` value to control the length of the time range.
 
+***
+
 ### `GroundLocation`
 `satdatagen.GroundLocation(space_track_credentials, latitude, longitude, time_range)`
 
@@ -61,7 +63,7 @@ Users must provide *either* a `delta` value or `end_date` value to control the l
 
 #### Methods:
 
-##### generate_dataset
+**generate_dataset**
 `generate_dataset(self, method = 'krag', limit = None, orbit = 'all', mixing_coeff = 0.8, output_file = None)`
 
 **method**: `str`. The method to use to calculate apparent visual magnitude (AVM). Options are `'krag'`, `'hejduk'`, or `'molczan'`. 
@@ -76,3 +78,25 @@ Users must provide *either* a `delta` value or `end_date` value to control the l
 
 *Note: all parameters described above for the `generate_dataset` method are optional.*
 
+
+## Example
+
+```
+import satdatagen as sdg
+from datetime import datetime
+
+start_date = datetime(2024, 6, 18, hour = 20, minute = 0)
+periods = 24
+delta = 30
+haystack_lon = -71.44 #degrees west
+haystack_lat = 42.58 #degrees north
+
+credentials = '/path/to/space/track/credentials.json'
+
+tr = sdg.TimeRange(start_date = start_date, periods = periods, delta = delta) #time range is 12 hours long
+gl = sdg.GroundLocation(credentials, haystack_lat, haystack_lon, tr)
+
+#use Molczan's method to calculate AVM, only include 500 satellites in the dataset, and save the dataset to dataset.json
+ds = gl.generate_dataset(method = 'molczan', limit = 500, output_file = 'dataset.json') 
+
+```
