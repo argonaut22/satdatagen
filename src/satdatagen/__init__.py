@@ -21,7 +21,7 @@ from satdatagen.M90 import M90_dict
 from satdatagen.helpers import *
 from satdatagen.TimeRange import *
 from satdatagen.GroundLocation import *
-from satdatagen.Satellite import *
+# from satdatagen.Satellite import *
 # import openmeteo_requests
 
 

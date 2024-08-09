@@ -618,20 +618,20 @@ def get_avm(satno, ground_loc, sat_coords, sat_area, obstime, method = 'krag', m
 
 	
 
-# if __name__ == '__main__':
-# 	from satdatagen.TimeRange import *
-# 	from satdatagen.GroundLocation import *
-# 	import time
-# 	start_date = datetime(2024, 6, 18, hour = 18, minute = 0)
-# # end_date = datetime(2024, 6, 19, hour = 16, minute = 30)
-# 	periods = 24
-# 	haystack_lon = -71.44 #degrees west
-# 	haystack_lat = 42.58 #degrees north
+if __name__ == '__main__':
+	from satdatagen.TimeRange import *
+	from satdatagen.GroundLocation import *
+	import time
+	start_date = datetime(2024, 6, 18, hour = 18, minute = 0)
+# end_date = datetime(2024, 6, 19, hour = 16, minute = 30)
+	periods = 24
+	haystack_lon = -71.44 #degrees west
+	haystack_lat = 42.58 #degrees north
 
-# 	credentials = '/Users/adinagolden/Documents/MIT/Thesis/thesis/code/credentials.json'
+	credentials = '/Users/adinagolden/Documents/MIT/Thesis/thesis/code/credentials.json'
 
-# 	tr = TimeRange(start_date = start_date, periods = periods, delta = 30)
-# 	gl = GroundLocation(credentials, haystack_lat, haystack_lon, tr)
+	tr = TimeRange(start_date = start_date, periods = periods, delta = 30)
+	gl = GroundLocation(credentials, haystack_lat, haystack_lon, tr)
 # 	avg80 = 0
 # 	avg100 = 0
 # 	avg120 = 0
@@ -669,10 +669,10 @@ def get_avm(satno, ground_loc, sat_coords, sat_area, obstime, method = 'krag', m
 	# 	total260 = time.time() - total_260start
 	# 	avg260 += total260
 
-	# start500 = time.time()
-	# times500 = _generate_dataset(credentials, gl.el, tr.times, limit = 100, debug = True, orbit = 'LEO', method = 'krag', output_file = 'test.json')
-	# total500 = time.time() - start500
-	# # print(f'task size 500: total = {total500}, breakdown = {times500}')
+	start500 = time.time()
+	times500 = _generate_dataset(credentials, gl.el, tr.times, limit = 100, debug = True, orbit = 'LEO', method = 'krag', output_file = 'test.json')
+	total500 = time.time() - start500
+	print(f'task size 500: total = {total500}, breakdown = {times500}')
 	# print("******")
 	# print(times500)
 
