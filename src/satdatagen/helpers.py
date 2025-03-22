@@ -252,7 +252,9 @@ def get_alt_az(observ_loc, sat_teme, sat_teme_v, observ_time):
 	return altaz.alt, altaz.az
 
 
-def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 'krag', debug = False, limit = None, orbit = 'all', mixing_coeff = 0.8, output_file = None):
+def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 'krag', debug = False, 
+					  limit = None, orbit = 'all', elevation_threshold=10.,
+						mixing_coeff = 0.8, output_file = None):
 	'''
 	generates the dataset as customized by user
 	
@@ -263,6 +265,8 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	@param [debug]: internal debug toggle
 	@param [limit]: integer that limits the number of satellites represented in the dataset. default is no limit, all satellites that pass over head included
 	@param [orbit]: string that filters for objects in a certain orbit.  options are 'LEO', 'MEO', 'GEO', 'all'. default is objects at all orbits
+					ALTERNATELY, orbit can be a float that retains objects with a semi-major axis less than the input value (in km)
+	@param [elevation_threshold]: float that determines the minimum elevation angle for a satellite to be included in the dataset
 	@param [mixing_coeff]: float between 0 and 1 that determines the ratio of diffuse/spectral reflection accounted for ONLY when method=='hejduk'
 	@param [output_file]: path to a .json file to output dataset to
 
@@ -281,25 +285,35 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	query_time = time.time() - query_start
 	sats_in_dataset = []
 	sat_areas = []
-	if orbit == 'LEO':
+
+	
+	#if orbit is a float, apply it as a numerical filter
+	if isinstance(orbit, float):
 		for s in all_sats_for_obstime:
-			if float(s['SEMIMAJOR_AXIS']) < 7178:
+			if float(s['SEMIMAJOR_AXIS']) <= orbit:
 				sats_in_dataset.append(s)
 				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
-	elif orbit == 'MEO':
-		for s in all_sats_for_obstime:
-			if float(s['SEMIMAJOR_AXIS']) >= 7178 and float(s['SEMIMAJOR_AXIS']) < 36378:
-				sats_in_dataset.append(s)
-				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
-	elif orbit == 'GEO':
-		for s in all_sats_for_obstime:
-			if float(s['SEMIMAJOR_AXIS']) >= 36378:
-				sats_in_dataset.append(s)
-				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+	#otherwise, filter by orbit type
 	else:
-		sats_in_dataset = all_sats_for_obstime
-		for s in all_sats_for_obstime:
-			sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+		if orbit == 'LEO':
+			for s in all_sats_for_obstime:
+				if float(s['SEMIMAJOR_AXIS']) < 7178:
+					sats_in_dataset.append(s)
+					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+		elif orbit == 'MEO':
+			for s in all_sats_for_obstime:
+				if float(s['SEMIMAJOR_AXIS']) >= 7178 and float(s['SEMIMAJOR_AXIS']) < 36378:
+					sats_in_dataset.append(s)
+					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+		elif orbit == 'GEO':
+			for s in all_sats_for_obstime:
+				if float(s['SEMIMAJOR_AXIS']) >= 36378:
+					sats_in_dataset.append(s)
+					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+		else:
+			sats_in_dataset = all_sats_for_obstime
+			for s in all_sats_for_obstime:
+				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 
 	prop_start = time.time()
 	e, r, v = propagate_sats(sats_in_dataset, time_list)
@@ -328,7 +342,7 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	filter_start = time.time()
 	alt_degs = altaz.alt.dms[0]
 
-	over_indices = np.nonzero(alt_degs>10)
+	over_indices = np.nonzero(alt_degs>elevation_threshold)
 	filter_time = time.time() - filter_start
 	unique_sats = np.unique(over_indices[0])
 	random_sats = unique_sats
@@ -618,20 +632,20 @@ def get_avm(satno, ground_loc, sat_coords, sat_area, obstime, method = 'krag', m
 
 	
 
-if __name__ == '__main__':
-	from satdatagen.TimeRange import *
-	from satdatagen.GroundLocation import *
-	import time
-	start_date = datetime(2024, 6, 18, hour = 18, minute = 0)
-# end_date = datetime(2024, 6, 19, hour = 16, minute = 30)
-	periods = 24
-	haystack_lon = -71.44 #degrees west
-	haystack_lat = 42.58 #degrees north
+# if __name__ == '__main__':
+# 	from satdatagen.TimeRange import *
+# 	from satdatagen.GroundLocation import *
+# 	import time
+# 	start_date = datetime(2024, 6, 18, hour = 18, minute = 0)
+# # end_date = datetime(2024, 6, 19, hour = 16, minute = 30)
+# 	periods = 24
+# 	haystack_lon = -71.44 #degrees west
+# 	haystack_lat = 42.58 #degrees north
 
-	credentials = '/Users/adinagolden/Documents/MIT/Thesis/thesis/code/credentials.json'
+# 	credentials = '/Users/adinagolden/Documents/MIT/Thesis/thesis/code/credentials.json'
 
-	tr = TimeRange(start_date = start_date, periods = periods, delta = 30)
-	gl = GroundLocation(credentials, haystack_lat, haystack_lon, tr)
+# 	tr = TimeRange(start_date = start_date, periods = periods, delta = 30)
+# 	gl = GroundLocation(credentials, haystack_lat, haystack_lon, tr)
 # 	avg80 = 0
 # 	avg100 = 0
 # 	avg120 = 0
@@ -669,10 +683,10 @@ if __name__ == '__main__':
 	# 	total260 = time.time() - total_260start
 	# 	avg260 += total260
 
-	start500 = time.time()
-	times500 = _generate_dataset(credentials, gl.el, tr.times, limit = 100, debug = True, orbit = 'LEO', method = 'krag', output_file = 'test.json')
-	total500 = time.time() - start500
-	print(f'task size 500: total = {total500}, breakdown = {times500}')
+	# start500 = time.time()
+	# times500 = _generate_dataset(credentials, gl.el, tr.times, limit = 100, debug = True, orbit = 'LEO', method = 'krag', output_file = 'test.json')
+	# total500 = time.time() - start500
+	# print(f'task size 500: total = {total500}, breakdown = {times500}')
 	# print("******")
 	# print(times500)
 
