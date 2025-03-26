@@ -149,6 +149,9 @@ def get_all_objects(space_track_credentials, day = None):
 		url = f'https://www.space-track.org/basicspacedata/query/class/gp/decay_date/null-val/epoch/%3Enow-30/orderby/norad_cat_id/format/json'
 	response_data = requests.get(url, allow_redirects=True, cookies=auth_cookie)
 	
+	if response_data.status_code == 401:
+		raise Exception("SpaceTrack login failed.  Please check your credentials, clear the cookie file (cookie.pkl), and try again.")
+
 	all_objects = []
 	
 	#create list of all objects returned
@@ -253,8 +256,8 @@ def get_alt_az(observ_loc, sat_teme, sat_teme_v, observ_time):
 
 
 def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 'krag', debug = False, 
-					  limit = None, orbit = 'all', elevation_threshold=10.,
-						mixing_coeff = 0.8, output_file = None):
+					  limit = None, orbit = 'all', elevation_threshold=10., 
+					  mixing_coeff = 0.8, output_file = None):
 	'''
 	generates the dataset as customized by user
 	
@@ -287,8 +290,9 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	sat_areas = []
 
 	
-	#if orbit is a float, apply it as a numerical filter
-	if isinstance(orbit, float):
+	#if orbit is a float or int, apply it as a numerical filter
+	if isinstance(orbit, (int, float)) and not isinstance(orbit, bool):
+		print("Filtering for semi-major axis < ", round(orbit, 0), " km")
 		for s in all_sats_for_obstime:
 			if float(s['SEMIMAJOR_AXIS']) <= orbit:
 				sats_in_dataset.append(s)
@@ -296,21 +300,25 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	#otherwise, filter by orbit type
 	else:
 		if orbit == 'LEO':
+			print("Filtering for objects in LEO")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) < 7178:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		elif orbit == 'MEO':
+			print("Filtering for objects in MEO")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) >= 7178 and float(s['SEMIMAJOR_AXIS']) < 36378:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		elif orbit == 'GEO':
+			print("Filtering for objects in GEO")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) >= 36378:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		else:
+			print("No orbit filter applied")
 			sats_in_dataset = all_sats_for_obstime
 			for s in all_sats_for_obstime:
 				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
