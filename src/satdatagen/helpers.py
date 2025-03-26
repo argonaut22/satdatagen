@@ -265,6 +265,7 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	@param ground_loc: astropy EarthLocation object
 	@param time_list: list of astropy Time objects
 	@param [method]: string that determines which AVM method to use to determine satellite brightness.  options are 'krag', 'molczan', 'hejduk'. default is the Krag method
+					method = None will skip the AVM calculation and only return the satellite information
 	@param [debug]: internal debug toggle
 	@param [limit]: integer that limits the number of satellites represented in the dataset. default is no limit, all satellites that pass over head included
 	@param [orbit]: string that filters for objects in a certain orbit.  options are 'LEO', 'MEO', 'GEO', 'all'. default is objects at all orbits
@@ -352,49 +353,74 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 
 	over_indices = np.nonzero(alt_degs>elevation_threshold)
 	filter_time = time.time() - filter_start
-	unique_sats = np.unique(over_indices[0])
+	unique_sats = np.unique(over_indices[0]) 
+	#NOTE: this^ filters out satellite repeats across time steps. Also note that multiple TLEs from
+	#  a single timestep query will result in multiple entries in unique_sats, which is then filtered in the output construction.
 	random_sats = unique_sats
 
 	if limit and limit <= len(unique_sats):
 		random_sats = np.random.choice(unique_sats, limit, replace = False)
-	zip_start = time.time()
-	avm_total_time = 0
-	prev_s = -1
-	for i in range(len(over_indices[0])):
-		s = over_indices[0][i]
-		t = over_indices[1][i]
-		if s not in random_sats:
-			continue
-		else:
-			
-			if s != prev_s:
-				sat = sats_in_dataset[s]
-			# 	sat_area = get_object_area(sat['NORAD_CAT_ID'])
-			s_area = sat_areas[s]
-			prev_s = s
-			avm = None
-			cc_idx = (24 * (time_list[t].datetime.date() - time_list[0].datetime.date()).days) + time_list[t].datetime.hour
-			# avm_start = time.time()
-			if s_area is not None:
-				avm_start = time.time()
-				avm = str(get_avm(int(sat['NORAD_CAT_ID']), observ_loc, itrs_sat[s,t], s_area, time_list[t], method = method, mixing_coeff = mixing_coeff))
-				avm_total_time += (time.time() - avm_start)
-			# avm_total_time += time.time() - avm_start
-			oh_dict = {'name':sat['OBJECT_NAME'],'time': time_list[t].datetime.isoformat(), 'alt':str(altaz[s,t].alt.dms), 'az':str(altaz[s,t].az.dms), 'TLE_LINE1':sat['TLE_LINE1'], 'TLE_LINE2':sat['TLE_LINE2'], 'AVM' : avm, 'cloud_cover' : str(cloud_cover[cc_idx])}
-			if sat['NORAD_CAT_ID'] in overhead_sats:
-				overhead_sats[sat['NORAD_CAT_ID']].append(oh_dict)
-			else:
-				overhead_sats[sat['NORAD_CAT_ID']] = [oh_dict]
 
-	zip_time = time.time() - zip_start
+	#calculate AVM for each satellite if method is provided
+	if method is not None:
+		zip_start = time.time()
+		avm_total_time = 0
+		prev_s = -1
+		for i in range(len(over_indices[0])):
+			s = over_indices[0][i]
+			t = over_indices[1][i]
+			if s not in random_sats:
+				continue
+			else:
+				
+				if s != prev_s:
+					sat = sats_in_dataset[s]
+				# 	sat_area = get_object_area(sat['NORAD_CAT_ID'])
+				s_area = sat_areas[s]
+				prev_s = s
+				avm = None
+				cc_idx = (24 * (time_list[t].datetime.date() - time_list[0].datetime.date()).days) + time_list[t].datetime.hour
+				# avm_start = time.time()
+				if s_area is not None:
+					avm_start = time.time()
+					avm = str(get_avm(int(sat['NORAD_CAT_ID']), observ_loc, itrs_sat[s,t], s_area, time_list[t], method = method, mixing_coeff = mixing_coeff))
+					avm_total_time += (time.time() - avm_start)
+				# avm_total_time += time.time() - avm_start
+				oh_dict = {'name':sat['OBJECT_NAME'],'time': time_list[t].datetime.isoformat(), 'alt':str(altaz[s,t].alt.dms), 'az':str(altaz[s,t].az.dms), 'TLE_LINE1':sat['TLE_LINE1'], 'TLE_LINE2':sat['TLE_LINE2'], 'AVM' : avm, 'cloud_cover' : str(cloud_cover[cc_idx])}
+				if sat['NORAD_CAT_ID'] in overhead_sats:
+					overhead_sats[sat['NORAD_CAT_ID']].append(oh_dict)
+				else:
+					overhead_sats[sat['NORAD_CAT_ID']] = [oh_dict]
+
+		zip_time = time.time() - zip_start
+		output_sats = overhead_sats
+
+	#return all unique sats if no avm method provided
+	else:
+		output_sats = {}
+
+		for s in random_sats:
+			sat = sats_in_dataset[s]
+			rnd_dict = {'name':sat['OBJECT_NAME'], 'TLE_LINE1':sat['TLE_LINE1'], 'TLE_LINE2':sat['TLE_LINE2']}
+
+			if False:
+			# if sat['NORAD_CAT_ID'] in output_sats:
+					output_sats[sat['NORAD_CAT_ID']].append(rnd_dict)
+			else:
+				output_sats[sat['NORAD_CAT_ID']] = [rnd_dict]
+
 	if debug:
-		return cloud_time, query_time, prop_time, trans_time, filter_time, avm_total_time, zip_time
+		if method is not None:
+			return cloud_time, query_time, prop_time, trans_time, filter_time, avm_total_time, zip_time
+		else:
+			print("Warning: augmented output for debugging was not defined for when method = None. Returning typical output.")
+			return output_sats
 	else:
 		if output_file:
 			out = open(output_file, 'w')
-			json.dump(overhead_sats, out)
+			json.dump(output_sats, out)
 			out.close()
-		return overhead_sats
+		return output_sats
 
 def get_sat_itrs(sat_teme, sat_teme_v, observ_time):
 	'''
@@ -613,9 +639,13 @@ def get_object_area(sat_id):
 def get_avm(satno, ground_loc, sat_coords, sat_area, obstime, method = 'krag', mixing_coeff = 0.8):
 	'''
 	performs calculations to get the brightness (AVM) of the satellite at the desired obstime
-	@param sat_area: float representing product of object area and albedo/reflectivity
 	@param ground_loc: astropy EarthLocation object of the observer's location on earth
 	@param sat_coords: coordinates of the satellite in ITRS as astropy ITRS object
+	@param sat_area: float representing product of object area and albedo/reflectivity
+	@param obstime: Time object of the time of observation
+	@param method: string that determines which AVM method to use to determine satellite brightness.  options are 'krag', 'molczan', 'hejduk'. default is the Krag method
+					method = None will skip the AVM calculation and only return the satellite information
+	@param mixing_coeff: float between 0 and 1 that determines the ratio of diffuse/spectral reflection accounted for ONLY when method=='hejduk'
 
 	@returns: AVM of satellite
 	'''
