@@ -96,32 +96,32 @@ def get_unique_entries(sat_list, day):
 	while (idx < len(sat_list)):
 		#go through indices of sat_list, find the other TLEs for the same NORAD ID, put them in temp_list
 		temp_list = []
-		try:
-			while(sat_list[idx]['NORAD_CAT_ID'] == sat_list[idx-1]['NORAD_CAT_ID']):
 
-				temp_list.append((idx-1, sat_list[idx-1]['EPOCH']))
-				if idx < (len(sat_list) - 1):
-					idx+=1
-				else:
-					break
+		#TODO: Fix this Gordian knot of learner code for clarity
+		#NOTE: this method drops the last* TLE of the last* satellite ('...ID')
+		# *last meaning last in the list, not latest in time
+		while(sat_list[idx]['NORAD_CAT_ID'] == sat_list[idx-1]['NORAD_CAT_ID']):
 
 			temp_list.append((idx-1, sat_list[idx-1]['EPOCH']))
+			if idx < (len(sat_list) - 1):
+				idx+=1
+			else:
+				break
 
-			#go through temp_list to find the TLE that has the epoch closest to desired time, add that to unique_sats list
-			closest_ep = 1000000000 #ridiculous number for initial comparison
-			closest_idx = idx
-			for ix,ep in temp_list:
-				epoch = datetime.fromisoformat(ep)
-				delta = day - epoch
+		temp_list.append((idx-1, sat_list[idx-1]['EPOCH']))
 
-				if delta.total_seconds() > 0 and delta.total_seconds() <= closest_ep:
-					closest_ep = delta.total_seconds()
-					closest_idx = ix
-			unique_sats.append(sat_list[closest_idx])
-			idx+=1
-		except:
-			# print(f'idx: {idx}, idx-1: {idx-1}')
-			pass
+		#go through temp_list to find the TLE that has the epoch closest to desired time, add that to unique_sats list
+		closest_ep = 1000000000 #ridiculous number for initial comparison
+		closest_idx = idx
+		for ix,ep in temp_list:
+			epoch = datetime.fromisoformat(ep)
+			delta = day - epoch
+
+			if delta.total_seconds() > 0 and delta.total_seconds() <= closest_ep:
+				closest_ep = delta.total_seconds()
+				closest_idx = ix
+		unique_sats.append(sat_list[closest_idx])
+		idx+=1
 
 	return unique_sats
 
