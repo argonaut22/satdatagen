@@ -126,10 +126,11 @@ def get_unique_entries(sat_list, day):
 	return unique_sats
 
 
-def get_all_objects(space_track_credentials, day = None): 
+def get_all_objects(space_track_credentials, day = None, verbose = True): 
 	'''
 	@param space_track_credentials: path to credentials.json file containing the user's login info to space-track.org
 	@param day type: datetime.datetime object representing desired observation day (including time)
+	@param verbose: boolean that determines whether to print out auxiliary query info 
 
 	@returns: the data that is received as response of the request to star-tracker as list of python dictionaries for each object
 	'''
@@ -157,6 +158,9 @@ def get_all_objects(space_track_credentials, day = None):
 	#create list of all objects returned
 	for i in response_data.json():
 		all_objects.append(dict(i))
+
+	if verbose:
+		print("Number of entries in raw SpaceTrack output: ", len(all_objects))
 
 	#only return closest TLEs that were recorded BEFORE time of obs.
 	unique_objs = get_unique_entries(all_objects, day)
@@ -255,9 +259,10 @@ def get_alt_az(observ_loc, sat_teme, sat_teme_v, observ_time):
 	return altaz.alt, altaz.az
 
 
-def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 'krag', debug = False, 
+def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 'krag',
 					  limit = None, orbit = 'all', elevation_threshold=10., 
-					  mixing_coeff = 0.8, output_file = None):
+					  mixing_coeff = 0.8, output_file = None,
+					  debug = False, verbose = True):
 	'''
 	generates the dataset as customized by user
 	
@@ -290,10 +295,12 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	sats_in_dataset = []
 	sat_areas = []
 
+	if verbose:
+		print("Number of unique, unfiltered objects: ", len(all_sats_for_obstime))
 	
 	#if orbit is a float or int, apply it as a numerical filter
 	if isinstance(orbit, (int, float)) and not isinstance(orbit, bool):
-		print("Filtering for semi-major axis < ", round(orbit, 0), " km")
+		print("Filtering for semi-major axis < ", round(orbit, 0), " km...")
 		for s in all_sats_for_obstime:
 			if float(s['SEMIMAJOR_AXIS']) <= orbit:
 				sats_in_dataset.append(s)
@@ -301,28 +308,35 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	#otherwise, filter by orbit type
 	else:
 		if orbit == 'LEO':
-			print("Filtering for objects in LEO")
+			if verbose: 
+				print("Filtering for objects in LEO...")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) < 7178:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		elif orbit == 'MEO':
-			print("Filtering for objects in MEO")
+			if verbose: 
+				print("Filtering for objects in MEO...")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) >= 7178 and float(s['SEMIMAJOR_AXIS']) < 36378:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		elif orbit == 'GEO':
-			print("Filtering for objects in GEO")
+			if verbose: 
+				print("Filtering for objects in GEO...")
 			for s in all_sats_for_obstime:
 				if float(s['SEMIMAJOR_AXIS']) >= 36378:
 					sats_in_dataset.append(s)
 					sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
 		else:
-			print("No orbit filter applied")
+			if verbose: 
+				print("No orbit filter applied.")
 			sats_in_dataset = all_sats_for_obstime
 			for s in all_sats_for_obstime:
 				sat_areas.append(get_object_area(s['NORAD_CAT_ID']))
+
+	if verbose:
+		print("Number of unique objects, post-orbital-filter: ", len(sats_in_dataset))
 
 	prop_start = time.time()
 	e, r, v = propagate_sats(sats_in_dataset, time_list)
@@ -356,10 +370,15 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 	unique_sats = np.unique(over_indices[0]) 
 	#NOTE: this^ filters out satellite repeats across time steps. Also note that multiple TLEs from
 	#  a single timestep query will result in multiple entries in unique_sats, which is then filtered in the output construction.
-	random_sats = unique_sats
 
+	if verbose:
+		print("Number of unique objects, post-elevation-filter (observer-dependent): ", len(unique_sats))
+
+	# if there are more unique_sats than the limit, randomly sample from them
 	if limit and limit <= len(unique_sats):
 		random_sats = np.random.choice(unique_sats, limit, replace = False)
+	else:
+		random_sats = unique_sats
 
 	#calculate AVM for each satellite if method is provided
 	if method is not None:
@@ -386,7 +405,11 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 					avm = str(get_avm(int(sat['NORAD_CAT_ID']), observ_loc, itrs_sat[s,t], s_area, time_list[t], method = method, mixing_coeff = mixing_coeff))
 					avm_total_time += (time.time() - avm_start)
 				# avm_total_time += time.time() - avm_start
-				oh_dict = {'name':sat['OBJECT_NAME'],'time': time_list[t].datetime.isoformat(), 'alt':str(altaz[s,t].alt.dms), 'az':str(altaz[s,t].az.dms), 'TLE_LINE1':sat['TLE_LINE1'], 'TLE_LINE2':sat['TLE_LINE2'], 'AVM' : avm, 'cloud_cover' : str(cloud_cover[cc_idx])}
+				oh_dict = {'name':sat['OBJECT_NAME'],'time': time_list[t].datetime.isoformat(), \
+			   				'alt':str(altaz[s,t].alt.dms), 'az':str(altaz[s,t].az.dms), 		\
+							'TLE_LINE1':sat['TLE_LINE1'], 'TLE_LINE2':sat['TLE_LINE2'], 		\
+							'AVM' : avm, 'cloud_cover' : str(cloud_cover[cc_idx])}
+				
 				if sat['NORAD_CAT_ID'] in overhead_sats:
 					overhead_sats[sat['NORAD_CAT_ID']].append(oh_dict)
 				else:
@@ -406,6 +429,7 @@ def _generate_dataset(space_track_credentials, ground_loc, time_list,  method = 
 			if False:
 			# if sat['NORAD_CAT_ID'] in output_sats:
 					output_sats[sat['NORAD_CAT_ID']].append(rnd_dict)
+				#This was removed since it /should/ be redundant with other functionalities. confirm before deleting	
 			else:
 				output_sats[sat['NORAD_CAT_ID']] = [rnd_dict]
 
@@ -445,7 +469,7 @@ def get_cloud_cover(ground_loc, start_date, end_date):
 	@param periods: the number of time periods to increase the time by delta minutes
 	@param delta: the number of minutes in each time period during the desired time range
 
-	@returns: list of percentages by area for cloud cover, for ALL hours in ALL days in the range
+	@returns: list of percentages by area for cloud cover, for ALL hours in ALL days in the range, on the hour
 	'''
 	openmeteo = openmeteo_requests.Client()
 	url = "https://archive-api.open-meteo.com/v1/archive"

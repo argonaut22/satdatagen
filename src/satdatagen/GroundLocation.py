@@ -24,7 +24,7 @@ class GroundLocation:
 		self.lon = lon
 
 	def get_latlon(self):
-		return lat,lon
+		return self.lat, self.lon
 
 	def EarthLocation(self):
 		return self.el
