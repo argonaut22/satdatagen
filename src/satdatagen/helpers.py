@@ -138,18 +138,18 @@ def get_all_objects(space_track_credentials, day = None, verbose = True):
 	auth_cookie = get_cookie(space_track_credentials)
 	#query space-track for observation day
 	if day is not None:
-		#note that if the desired time is early on a day the closest TLE might be from the day before, set threshold to be 8 hours as most TLEs are reported on an 8-hourly basis
-		if day.hour < 8:
-			qdate = day.date() - timedelta(days=1)
-		else:
-			qdate = day.date()
-		next_qdate = qdate + timedelta(days=1)
+		#note that if the desired time is early on a day the closest TLE might be from the day before,
+		# THUS, we'll always sample the day before as well
+		qdate = day.date() - timedelta(days=1)
+		next_qdate = day.date()
+
 		url = f'https://www.space-track.org/basicspacedata/query/class/gp_history/EPOCH/{qdate.isoformat()}--{next_qdate.isoformat()}/orderby/NORAD_CAT_ID%20asc/emptyresult/show'
 	#if no day specified then queries for current day
 	else:
 		url = f'https://www.space-track.org/basicspacedata/query/class/gp/decay_date/null-val/epoch/%3Enow-30/orderby/norad_cat_id/format/json'
 	response_data = requests.get(url, allow_redirects=True, cookies=auth_cookie)
 	
+	#check if login failed
 	if response_data.status_code == 401:
 		raise Exception("SpaceTrack login failed.  Please check your credentials, clear the cookie file (cookie.pkl), and try again.")
 
